@@ -1,0 +1,79 @@
+[
+  {
+    "time": 0.218,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 0
+  },
+  {
+    "time": 0.926,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 1
+  },
+  {
+    "time": 1.622,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 2
+  },
+  {
+    "time": 2.33,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 3
+  },
+  {
+    "time": 3.032,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 4
+  },
+  {
+    "time": 3.737,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 5
+  },
+  {
+    "time": 4.428,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 6
+  },
+  {
+    "time": 5.16,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 7
+  },
+  {
+    "time": 5.84,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 8
+  },
+  {
+    "time": 6.523,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 9
+  },
+  {
+    "time": 7.191,
+    "scrollY": 1080,
+    "progress": 100,
+    "method": "wheel",
+    "step": 10
+  }
+]

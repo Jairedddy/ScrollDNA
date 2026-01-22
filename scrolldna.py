@@ -1,8 +1,10 @@
-import sys, json, os, shutil, time, re
+import sys, json, os, shutil, time, re, cv2
 from urllib.parse import urlparse
 from capture.browser import launch_browser
 from capture.scroll import scroll_page
 from capture.dom import snapshot_dom
+from analysis.frames import extract_frames
+from analysis.motion import diff_frames, extract_motion_regions, track_regions, summarize_tracks
 
 if len(sys.argv) < 2:
     print("Error: URL argument is required")
@@ -16,11 +18,9 @@ url = sys.argv[1]
 if not url.startswith(('http://', 'https://')):
     url = 'https://' + url
 
-# Parse speed multiplier (optional second argument)
-speed_multiplier = 1.0  # Default speed
+speed_multiplier = 1.0  
 if len(sys.argv) >= 3:
     speed_arg = sys.argv[2].lower().strip()
-    # Match patterns like "2x", "1.5x", "0.5x", etc.
     match = re.match(r'^(\d+\.?\d*)x?$', speed_arg)
     if match:
         speed_multiplier = float(match.group(1))
@@ -32,7 +32,6 @@ if len(sys.argv) >= 3:
 pw, browser, context, page = launch_browser()
 page.goto(url, wait_until="networkidle")
 
-# Wait for page to be fully loaded and interactive
 time.sleep(1.0)
 
 try:
@@ -60,7 +59,6 @@ except Exception as e:
     print(f"Note: Could not maximize window automatically: {e}")
     print("Please maximize the browser window manually.")
 
-# Calculate step size based on speed multiplier (default step is 120)
 scroll_step = int(120 * speed_multiplier)
 scroll_log = scroll_page(page, step=scroll_step)
 
@@ -94,3 +92,37 @@ else:
 
 browser.close()
 pw.stop()
+
+def find_recorded_video(run_dir):
+    for root, _, files in os.walk(run_dir):
+        for f in files:
+            if f.endswith(".webm") or f.endswith(".mp4"):
+                return os.path.join(root, f)
+    return None
+
+video_path = find_recorded_video(run_dir)
+
+frames_dir = f"{run_dir}/frames"
+frame_count = extract_frames(
+    video_path=video_path,
+    output_dir=frames_dir,
+    every_n_frames=3
+)
+
+frame_files = sorted(os.listdir(frames_dir))
+region_sequences = []
+
+for i in range(len(frame_files) - 1):
+    f1 = cv2.imread(os.path.join(frames_dir, frame_files[i]))
+    f2 = cv2.imread(os.path.join(frames_dir, frame_files[i + 1]))
+
+    diff = diff_frames(f1, f2)
+    regions = extract_motion_regions(diff)
+
+    region_sequences.append(regions)
+
+tracks = track_regions(region_sequences)
+motion_tracks = summarize_tracks(tracks)
+
+with open(f"{run_dir}/motion_tracks.json", "w") as f:
+    json.dump(motion_tracks, f, indent=2)

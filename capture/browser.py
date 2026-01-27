@@ -7,9 +7,8 @@ def launch_browser():
         args=["--disabled-infobars", "--start-maximized"]
     )
     context = browser.new_context(
-        viewport={"width": 1920, "height": 1080},
-        record_video_dir="output/runs",
-        record_video_size={"width": 1920, "height": 1080}
+        viewport=None,  # Use actual window size
+        record_video_dir="output/runs"
     )
     # Set navigation timeout on the context
     context.set_default_navigation_timeout(60000)  # 60 seconds

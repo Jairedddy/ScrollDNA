@@ -5,6 +5,11 @@ from capture.scroll import scroll_page
 from capture.dom import snapshot_dom
 from analysis.frames import extract_frames
 from analysis.motion import diff_frames, extract_motion_regions, track_regions, summarize_tracks
+from analysis.correlate import (
+    build_frame_scroll_map,
+    attach_scroll_to_tracks,
+    build_effects
+)
 
 if len(sys.argv) < 2:
     print("Error: URL argument is required")
@@ -30,10 +35,8 @@ if len(sys.argv) >= 3:
         print("Speed format should be like: 2x, 1.5x, 0.5x, etc.")
 
 pw, browser, context, page = launch_browser()
-page.goto(url, wait_until="networkidle")
 
-time.sleep(1.0)
-
+# Maximize window BEFORE loading the page so website adjusts properly
 try:
     cdp_session = context.new_cdp_session(page)
     targets_response = cdp_session.send("Target.getTargets")
@@ -54,10 +57,40 @@ try:
                 "windowId": window_id,
                 "bounds": {"windowState": "maximized"}
             })
-            time.sleep(1.0)
+            time.sleep(1.0)  # Wait for window to maximize
 except Exception as e:
     print(f"Note: Could not maximize window automatically: {e}")
     print("Please maximize the browser window manually.")
+
+# Now load the page - it will load at the maximized size
+page.goto(url, wait_until="networkidle")
+time.sleep(1.0)
+
+# Get actual window dimensions and ensure viewport matches
+try:
+    window_size = page.evaluate("""
+        () => {
+            return {
+                width: window.outerWidth,
+                height: window.outerHeight,
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight
+            };
+        }
+    """)
+    print(f"Window size: {window_size['width']}x{window_size['height']}, Content area: {window_size['innerWidth']}x{window_size['innerHeight']}")
+    
+    # Set viewport to match actual content area
+    page.set_viewport_size({
+        "width": window_size['innerWidth'],
+        "height": window_size['innerHeight']
+    })
+    
+    # Trigger resize event to ensure website adjusts
+    page.evaluate("window.dispatchEvent(new Event('resize'))")
+    time.sleep(0.5)
+except Exception as e:
+    print(f"Note: Could not set viewport size: {e}")
 
 scroll_step = int(120 * speed_multiplier)
 scroll_log = scroll_page(page, step=scroll_step)
@@ -126,3 +159,21 @@ motion_tracks = summarize_tracks(tracks)
 
 with open(f"{run_dir}/motion_tracks.json", "w") as f:
     json.dump(motion_tracks, f, indent=2)
+
+# Correlate motion tracks with scroll data
+frame_scroll_map = build_frame_scroll_map(
+    scroll_log=scroll_log,
+    total_frames=len(region_sequences)
+)
+
+tracks_with_scroll = attach_scroll_to_tracks(
+    motion_tracks,
+    frame_scroll_map
+)
+
+effects = build_effects(
+    tracks_with_scroll
+)
+
+with open(f"{run_dir}/effects.json", "w") as f:
+    json.dump(effects, f, indent=2)
